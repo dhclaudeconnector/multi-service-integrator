@@ -22,8 +22,18 @@ export abstract class BaseService<
   abstract readonly ICON: string
   abstract readonly DESCRIPTION: string
 
-  abstract validateCredentials(creds: TCredential): Promise<boolean>
-  abstract fetchMetadata(creds: TCredential): Promise<Partial<TConfig>>
+  /**
+   * Validates credentials. Config is passed in so subclasses (e.g. Supabase) can use
+   * project_url without mutating instance state.
+   */
+  abstract validateCredentials(creds: TCredential, config?: Partial<TConfig>): Promise<boolean>
+
+  /**
+   * Fetches remote metadata. Config is passed in so subclasses can resolve project context
+   * without relying on instance-level currentConfig mutation.
+   */
+  abstract fetchMetadata(creds: TCredential, config?: Partial<TConfig>): Promise<Partial<TConfig>>
+
   abstract getSubResourceTypes(): SubResourceDef[]
   abstract fetchSubResources(type: string, accountId: string, uid: string, params?: Record<string, string>): Promise<TSubResource[]>
   abstract createSubResource(type: string, accountId: string, uid: string, data: Record<string, unknown>): Promise<TSubResource | Record<string, unknown>>

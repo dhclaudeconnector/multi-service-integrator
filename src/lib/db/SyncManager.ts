@@ -39,6 +39,7 @@ export class SyncManager {
 
   /** Adds a local change to the sync queue. */
   async markDirty(localId: string, path: string, data: unknown, operation: SyncQueueItem['operation']): Promise<void> {
+    void localId
     await db.sync_queue.put({
       id: nanoid(12),
       path,
@@ -70,7 +71,6 @@ export class SyncManager {
   /** Processes a single queued item and removes it on success. */
   private async processItem(item: SyncQueueItem): Promise<void> {
     try {
-      const extracted = item.path.split('/').filter(Boolean)
       const shardId = ShardManager.getInstance().getWriteShard().id
       if (item.operation === 'delete') {
         await ShardManager.getInstance().delete(shardId, item.path)
@@ -79,7 +79,6 @@ export class SyncManager {
       } else {
         await ShardManager.getInstance().write(item.path, item.data)
       }
-      void extracted
       await db.sync_queue.delete(item.id)
     } catch {
       const retries = item.retries + 1
@@ -89,11 +88,5 @@ export class SyncManager {
       }
       await db.sync_queue.put({ ...item, retries })
     }
-  }
-
-  /** Resolves conflicts using last-write-wins semantics. */
-  private handleConflict(local: SyncQueueItem, remote: unknown): unknown {
-    void remote
-    return local.data
   }
 }

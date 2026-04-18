@@ -49,11 +49,9 @@ export class AuditLogger {
   /** Fetches audit logs for a user and applies in-memory filters. */
   async getLogs(uid: string, filters: AuditLogFilters = {}): Promise<AuditEntry[]> {
     const shardId = ShardManager.getInstance().getWriteShard().id
-    const snapshot = await ShardManager.getInstance()
-      .getReadShard(shardId)
-    void snapshot
+    const { getAdminDb } = await import('../firebase/FirebaseAdmin')
 
-    const raw = await (await import('../firebase/FirebaseAdmin')).getAdminDb(shardId)
+    const raw = await getAdminDb(shardId)
       .ref(`${this.RTDB_PATH}/${uid}`)
       .orderByChild('timestamp')
       .get()

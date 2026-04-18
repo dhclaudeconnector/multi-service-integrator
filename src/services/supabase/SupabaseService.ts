@@ -16,16 +16,16 @@ export class SupabaseService extends BaseService<SupabaseConfig, SupabaseCredent
   readonly ICON = 'database'
   readonly DESCRIPTION = 'Manage Supabase projects, tables, and edge functions'
 
-  /** Validates Supabase credentials by pinging REST. */
-  async validateCredentials(creds: SupabaseCredential): Promise<boolean> {
-    const projectUrl = (this as unknown as { currentConfig?: Partial<SupabaseConfig> }).currentConfig?.project_url ?? ''
+  /** Validates Supabase credentials by pinging REST. Config provides project_url. */
+  async validateCredentials(creds: SupabaseCredential, config?: Partial<SupabaseConfig>): Promise<boolean> {
+    const projectUrl = config?.project_url ?? ''
     return new SupabaseApi(creds, { project_url: projectUrl }).ping()
   }
 
-  /** Fetches Supabase project metadata. */
-  async fetchMetadata(creds: SupabaseCredential): Promise<Partial<SupabaseConfig>> {
-    const projectUrl = (this as unknown as { currentConfig?: Partial<SupabaseConfig> }).currentConfig?.project_url ?? ''
-    const cleanUrl = projectUrl || ''
+  /** Fetches Supabase project metadata. Config provides project_url. */
+  async fetchMetadata(creds: SupabaseCredential, config?: Partial<SupabaseConfig>): Promise<Partial<SupabaseConfig>> {
+    void creds
+    const cleanUrl = config?.project_url ?? ''
     const projectId = cleanUrl.replace(/^https?:\/\//, '').split('.')[0] ?? ''
     return {
       project_url: cleanUrl,
@@ -69,12 +69,6 @@ export class SupabaseService extends BaseService<SupabaseConfig, SupabaseCredent
 
   /** Supabase sub-resource deletion is not implemented. */
   async deleteSubResource(): Promise<void> {}
-
-  /** Overrides save to preserve project_url for metadata fetch. */
-  async save(uid: string, input: { name: string; config: SupabaseConfig; credentials: SupabaseCredential }) {
-    ;(this as unknown as { currentConfig?: Partial<SupabaseConfig> }).currentConfig = input.config
-    return super.save(uid, input)
-  }
 }
 
 ServiceRegistry.register(new SupabaseService())

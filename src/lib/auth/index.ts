@@ -5,3 +5,5 @@
 
 export * from './auth'
 export * from './withAuth'
+export * from './AuthAdapter'
+export * from './RtdbRules'

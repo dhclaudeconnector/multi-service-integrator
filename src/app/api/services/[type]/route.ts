@@ -37,13 +37,14 @@ export const POST = withAuth(async (req, { params, user }) => {
   const service = ServiceRegistry.get(params.type)
   const credentials = parsed.data.credentials as Record<string, unknown>
   const config = parsed.data.config as Record<string, unknown>
-  ;(service as unknown as { currentConfig?: Record<string, unknown> }).currentConfig = config
-  const isValid = await service.validateCredentials(credentials)
+
+  // Pass config directly — no unsafe type casting needed
+  const isValid = await service.validateCredentials(credentials, config)
   if (!isValid) {
     return fail('SERVICE-AUTH-001', 'Credential validation failed', 400)
   }
 
-  const metadata = await service.fetchMetadata(credentials)
+  const metadata = await service.fetchMetadata(credentials, config)
   const result = await service.save(user.uid, {
     name: parsed.data.name,
     config: { ...config, ...metadata },

@@ -7,6 +7,7 @@ import NextAuth from 'next-auth'
 import { createGoogleProvider } from './providers/google'
 import { createSupabaseProvider } from './providers/supabase'
 import { createCustomProvider } from './providers/custom'
+import { upsertUserToRTDB } from './AuthAdapter'
 
 function getProviders() {
   const enabled = (process.env.AUTH_PROVIDERS ?? 'custom').split(',').map((item) => item.trim()).filter(Boolean)
@@ -38,6 +39,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.name = user.name ?? token.name
         token.role = 'owner'
         token.authProvider = account?.provider ?? 'custom'
+
+        if (token.uid && token.email) {
+          try {
+            await upsertUserToRTDB({
+              uid: String(token.uid),
+              email: String(token.email),
+              displayName: token.name ? String(token.name) : undefined,
+              authProvider: String(token.authProvider ?? 'custom'),
+            })
+          } catch (error) {
+            console.warn('AuthAdapter upsert skipped:', error)
+          }
+        }
       }
       return token
     },

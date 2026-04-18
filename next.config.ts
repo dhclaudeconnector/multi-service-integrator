@@ -6,9 +6,8 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['firebase-admin'],
-  },
+  // next.js 15: serverComponentsExternalPackages was renamed to serverExternalPackages
+  serverExternalPackages: ['firebase-admin'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },

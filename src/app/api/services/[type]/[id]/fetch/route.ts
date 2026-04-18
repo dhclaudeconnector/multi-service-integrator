@@ -8,15 +8,13 @@ import { ServiceRegistry } from '@/services/_registry'
 import { OperationLogger } from '@/lib/logger/OperationLogger'
 import { ok, fail } from '@/lib/utils/api'
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 export const POST = withAuth(async (_req, { params, user }) => {
   if (!ServiceRegistry.has(params.type)) return fail('SERVICE-404', 'Service not registered', 404)
   const service = ServiceRegistry.get(params.type)
+
+  // Load both config and credentials — pass config into fetchMetadata directly
   const loaded = await service.load(user.uid, params.id)
-  ;(service as unknown as { currentConfig?: Record<string, unknown> }).currentConfig = loaded.config as Record<string, unknown>
+
   const context = OperationLogger.getInstance().startOperation('FETCH_METADATA', {
     serviceType: params.type,
     accountId: params.id,
@@ -26,21 +24,15 @@ export const POST = withAuth(async (_req, { params, user }) => {
   })
 
   const startedAt = Date.now()
+
   let metadata: Record<string, unknown> = {}
-  let lastError: unknown = null
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      metadata = await service.fetchMetadata(loaded.credentials)
-      break
-    } catch (error) {
-      lastError = error
-      await sleep((attempt + 1) * 500)
-    }
-  }
-
-  if (Object.keys(metadata).length === 0 && lastError) {
-    await context.end('FAILURE', { error: String((lastError as { message?: string }).message ?? 'Metadata refresh failed') })
+  try {
+    // Pass current config so services like Supabase/GitHub can use it without instance mutation
+    metadata = await service.fetchMetadata(loaded.credentials, loaded.config)
+  } catch (error) {
+    await context.end('FAILURE', {
+      error: String((error as { message?: string }).message ?? 'Metadata refresh failed'),
+    })
     return fail('SERVICE-FETCH-001', 'Metadata refresh failed', 500)
   }
 

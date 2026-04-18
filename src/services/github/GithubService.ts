@@ -39,14 +39,16 @@ export class GithubService extends BaseService<
     }
   }
 
-  /** Fetches GitHub account metadata from the API. */
-  async fetchMetadata(creds: GithubCredential): Promise<Partial<GithubConfig>> {
+  /**
+   * Fetches GitHub account metadata from the API.
+   * Config is passed in to preserve account_email without instance mutation.
+   */
+  async fetchMetadata(creds: GithubCredential, config?: Partial<GithubConfig>): Promise<Partial<GithubConfig>> {
     const user = await new GithubApi(creds.token).getUser()
     const plan = (user.plan?.name?.toLowerCase() ?? 'free') as GithubConfig['plan']
-    const currentConfig = (this as unknown as { currentConfig?: Partial<GithubConfig> }).currentConfig
     return {
       owner: user.login,
-      account_email: currentConfig?.account_email ?? creds.email ?? user.email ?? undefined,
+      account_email: config?.account_email ?? creds.email ?? user.email ?? undefined,
       avatar_url: user.avatar_url,
       html_url: user.html_url,
       plan: ['free', 'pro', 'team', 'enterprise'].includes(plan) ? plan : 'free',
@@ -204,7 +206,6 @@ export class GithubService extends BaseService<
       if (missing.length > 0) {
         return { missing_fields: missing, defaults: { contentType: 'json' } }
       }
-
       return api.createHook(owner, String(data.repo_name), {
         repo_name: String(data.repo_name),
         url: String(data.url),
